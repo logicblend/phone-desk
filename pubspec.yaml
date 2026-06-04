@@ -42,6 +42,11 @@ dependencies:
   cross_file: ^0.3.5+2
   shared_preferences: ^2.5.5
   file_picker: ^11.0.2
+  image: ^4.8.0
+  screen_retriever: ^0.2.0
+  screen_capturer: ^0.2.3
+  ffi: ^2.2.0
+  win32: ^5.15.0
 
 dev_dependencies:
   flutter_test:

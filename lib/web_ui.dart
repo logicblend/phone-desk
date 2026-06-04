@@ -59,6 +59,18 @@ tailwind.config = {
       position: relative;
       overflow: hidden;
   }
+  .fullscreen-override {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 99999 !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      border: none !important;
+      background-color: black !important;
+  }
   .control-tile:active {
       transform: translateY(2px) scale(0.96);
       filter: brightness(0.9);
@@ -196,20 +208,56 @@ tailwind.config = {
                     </div>
                 </div>
             </div>
+
+            <!-- SCREEN SECTION -->
+            <div id="screen-section" class="hidden w-full h-full flex-col">
+                <div class="flex justify-between items-center mb-2 shrink-0">
+                    <span class="text-on-surface font-bold text-sm">Akıcılık (FPS)</span>
+                    <div class="flex gap-1 bg-surface-container rounded-lg p-1 items-center">
+                        <button onclick="setFps(15)" id="fps-15" class="fps-btn px-3 py-1 rounded-md text-xs font-bold bg-primary text-background">15</button>
+                        <button onclick="setFps(30)" id="fps-30" class="fps-btn px-3 py-1 rounded-md text-xs font-bold text-on-surface-variant hover:text-on-surface bg-transparent">30</button>
+                        <button onclick="setFps(45)" id="fps-45" class="fps-btn px-3 py-1 rounded-md text-xs font-bold text-on-surface-variant hover:text-on-surface bg-transparent">45</button>
+                        <button onclick="setFps(60)" id="fps-60" class="fps-btn px-3 py-1 rounded-md text-xs font-bold text-on-surface-variant hover:text-on-surface bg-transparent">60</button>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mb-4 shrink-0">
+                    <span class="text-on-surface font-bold text-sm">Kalite (Res)</span>
+                    <div class="flex gap-1 bg-surface-container rounded-lg p-1 items-center">
+                        <button onclick="setRes(480)" id="res-480" class="res-btn px-2 py-1 rounded-md text-xs font-bold text-on-surface-variant hover:text-on-surface bg-transparent">480p</button>
+                        <button onclick="setRes(720)" id="res-720" class="res-btn px-2 py-1 rounded-md text-xs font-bold text-on-surface-variant hover:text-on-surface bg-transparent">720p</button>
+                        <button onclick="setRes(1080)" id="res-1080" class="res-btn px-2 py-1 rounded-md text-xs font-bold bg-primary text-background">1080p</button>
+                        <div class="w-px h-4 bg-outline-variant mx-1"></div>
+                        <button onclick="toggleFullscreen()" class="p-1 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-white/5 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[20px]">fullscreen</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="screen-container" class="flex-1 bg-black rounded-2xl overflow-hidden relative border-2 border-outline-variant flex items-center justify-center mb-2">
+                    <img id="screen-img" src="" class="w-full h-full object-contain pointer-events-none" />
+                    <div id="screen-overlay" class="absolute inset-0 z-10 w-full h-full touch-none"></div>
+                    <button id="exit-fs-btn" onclick="toggleFullscreen()" class="hidden absolute top-4 right-4 z-50 bg-black/50 text-white rounded-full p-2 border border-white/20 backdrop-blur-md shadow-lg">
+                        <span class="material-symbols-outlined">fullscreen_exit</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </main>
 
     <!-- BottomNavBar -->
     <nav class="bg-surface-container-lowest absolute bottom-0 w-full z-50 flex justify-around items-center h-20 safe-pb px-2 border-t border-outline-variant shadow-[0_-4px_16px_rgba(0,0,0,0.5)]">
-        <button onclick="switchTab('files')" id="tab-files" class="flex flex-col items-center justify-center text-on-surface-variant w-1/3">
+        <button onclick="switchTab('files')" id="tab-files" class="flex flex-col items-center justify-center text-on-surface-variant w-1/4">
             <span class="material-symbols-outlined mb-1 text-2xl">folder</span>
             <span class="text-[10px]">Dosyalar</span>
         </button>
-        <button onclick="switchTab('touchpad')" id="tab-touchpad" class="flex flex-col items-center justify-center text-on-surface-variant w-1/3">
+        <button onclick="switchTab('touchpad')" id="tab-touchpad" class="flex flex-col items-center justify-center text-on-surface-variant w-1/4">
             <span class="material-symbols-outlined mb-1 text-2xl">touchpad_mouse</span>
             <span class="text-[10px]">Touchpad</span>
         </button>
-        <button onclick="switchTab('deck')" id="tab-deck" class="flex flex-col items-center justify-center text-primary bg-secondary-container/20 border border-primary/30 rounded-full py-1 w-1/3">
+        <button onclick="switchTab('screen')" id="tab-screen" class="flex flex-col items-center justify-center text-on-surface-variant w-1/4">
+            <span class="material-symbols-outlined mb-1 text-2xl">desktop_windows</span>
+            <span class="text-[10px]">Ekran</span>
+        </button>
+        <button onclick="switchTab('deck')" id="tab-deck" class="flex flex-col items-center justify-center text-primary bg-secondary-container/20 border border-primary/30 rounded-full py-1 w-1/4">
             <span class="material-symbols-outlined mb-1 text-2xl" style="font-variation-settings: 'FILL' 1;">grid_view</span>
             <span class="text-[10px] font-bold">Deck</span>
         </button>
@@ -252,26 +300,28 @@ tailwind.config = {
 
   function switchTab(tab) {
     currentAppTab = tab;
-    ['files', 'deck', 'touchpad'].forEach(t => {
-      document.getElementById(t + '-section').classList.add('hidden');
-      document.getElementById(t + '-section').classList.remove('block', 'flex');
-      
-      const btn = document.getElementById('tab-' + t);
-      btn.className = "flex flex-col items-center justify-center text-on-surface-variant w-1/3 transition-all";
-      btn.querySelector('.material-symbols-outlined').style.fontVariationSettings = "'FILL' 0";
-      btn.querySelector('span:last-child').classList.remove('font-bold');
+    ['files', 'deck', 'touchpad', 'screen'].forEach(t => {
+      document.getElementById(`${t}-section`).classList.add('hidden');
+      document.getElementById(`${t}-section`).classList.remove('block', 'flex');
+      document.getElementById(`tab-${t}`).classList.remove('text-primary', 'bg-secondary-container/20', 'border', 'border-primary/30', 'rounded-full', 'py-1', 'font-bold');
+      document.getElementById(`tab-${t}`).classList.add('text-on-surface-variant');
+      document.getElementById(`tab-${t}`).querySelector('span:first-child').style.fontVariationSettings = "'FILL' 0";
+      document.getElementById(`tab-${t}`).querySelector('span:last-child').classList.remove('font-bold');
     });
     
-    const activeSec = document.getElementById(tab + '-section');
+    const activeSec = document.getElementById(`${tab}-section`);
     activeSec.classList.remove('hidden');
-    activeSec.classList.add(tab === 'touchpad' ? 'flex' : 'block');
+    activeSec.classList.add((tab === 'touchpad' || tab === 'screen') ? 'flex' : 'block');
     
     const activeBtn = document.getElementById('tab-' + tab);
-    activeBtn.className = "flex flex-col items-center justify-center text-primary bg-secondary-container/20 border border-primary/30 rounded-full py-1 w-1/3 transition-all";
-    activeBtn.querySelector('.material-symbols-outlined').style.fontVariationSettings = "'FILL' 1";
+    activeBtn.classList.remove('text-on-surface-variant');
+    activeBtn.classList.add('text-primary', 'bg-secondary-container/20', 'border', 'border-primary/30', 'rounded-full', 'py-1');
+    activeBtn.querySelector('span:first-child').style.fontVariationSettings = "'FILL' 1";
     activeBtn.querySelector('span:last-child').classList.add('font-bold');
 
+    if (tab === 'files') loadDirectory();
     if (tab === 'deck') loadDeck();
+    if (tab === 'screen') startStream(); else stopStream();
   }
 
   // --- Deck Functions ---
@@ -607,6 +657,154 @@ tailwind.config = {
       document.getElementById('kb-send').click();
       setTimeout(() => sendToPC('hotkey', 'enter'), 150); // Optional: also press enter on PC
     }
+  });
+
+  // --- Screen Stream Logic ---
+  let streamFps = 15;
+  let streamRes = 1080;
+  let isStreaming = false;
+
+  function setFps(fps) {
+    streamFps = fps;
+    document.querySelectorAll('.fps-btn').forEach(btn => {
+      btn.classList.replace('bg-primary', 'bg-transparent');
+      btn.classList.replace('text-background', 'text-on-surface-variant');
+      btn.classList.add('hover:text-on-surface');
+    });
+    const active = document.getElementById('fps-'+fps);
+    active.classList.remove('hover:text-on-surface');
+    active.classList.replace('bg-transparent', 'bg-primary');
+    active.classList.replace('text-on-surface-variant', 'text-background');
+    if (isStreaming) {
+       startStream();
+    }
+  }
+
+  function setRes(res) {
+    streamRes = res;
+    document.querySelectorAll('.res-btn').forEach(btn => {
+      btn.classList.replace('bg-primary', 'bg-transparent');
+      btn.classList.replace('text-background', 'text-on-surface-variant');
+      btn.classList.add('hover:text-on-surface');
+    });
+    const active = document.getElementById('res-'+res);
+    active.classList.remove('hover:text-on-surface');
+    active.classList.replace('bg-transparent', 'bg-primary');
+    active.classList.replace('text-on-surface-variant', 'text-background');
+    if (isStreaming) {
+       startStream();
+    }
+  }
+
+  function startStream() {
+    isStreaming = true;
+    const img = document.getElementById('screen-img');
+    // For MJPEG, we only need to set the source once! The browser handles the rest.
+    img.src = '/screen/frame?fps=' + streamFps + '&res=' + streamRes + '&pwd=' + encodeURIComponent(password) + '&t=' + new Date().getTime();
+    
+    // If the connection drops or fails initially, retry after 2 seconds
+    img.onerror = () => {
+        if (isStreaming) {
+            setTimeout(startStream, 2000);
+        }
+    };
+  }
+
+  function stopStream() {
+    isStreaming = false;
+    api('/screen/stop', { method: 'POST' }).catch(()=>{});
+  }
+
+  function toggleFullscreen() {
+    const container = document.getElementById('screen-container');
+    const exitBtn = document.getElementById('exit-fs-btn');
+    
+    // Check if we are using the Native Fullscreen API
+    if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+        container.classList.remove('fullscreen-override');
+        exitBtn.classList.add('hidden');
+    } else if (container.classList.contains('fullscreen-override')) {
+        // We were using CSS override, disable it
+        container.classList.remove('fullscreen-override');
+        exitBtn.classList.add('hidden');
+    } else {
+        // Attempt Native Fullscreen
+        if (container.requestFullscreen) {
+            container.requestFullscreen().catch(err => {
+                // Fallback to CSS fullscreen
+                container.classList.add('fullscreen-override');
+                exitBtn.classList.remove('hidden');
+            });
+        } else if (container.webkitRequestFullscreen) {
+            container.webkitRequestFullscreen();
+        } else if (container.msRequestFullscreen) {
+            container.msRequestFullscreen();
+        } else {
+            // Fallback to CSS fullscreen
+            container.classList.add('fullscreen-override');
+            exitBtn.classList.remove('hidden');
+        }
+        
+        // Show exit button immediately if we are relying on fallback or just to be safe
+        exitBtn.classList.remove('hidden');
+    }
+  }
+
+  // Handle ESC key or native exit to hide the exit button
+  document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+          document.getElementById('screen-container').classList.remove('fullscreen-override');
+          document.getElementById('exit-fs-btn').classList.add('hidden');
+      }
+  });
+
+  // Absolute coordinate touch on screen
+  const screenOverlay = document.getElementById('screen-overlay');
+  screenOverlay.addEventListener('click', (e) => {
+    const img = document.getElementById('screen-img');
+    const rect = img.getBoundingClientRect();
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    if (!nw || !nh) return;
+    
+    const scale = Math.min(rect.width / nw, rect.height / nh);
+    const renderW = nw * scale;
+    const renderH = nh * scale;
+    
+    const offsetX = (rect.width - renderW) / 2;
+    const offsetY = (rect.height - renderH) / 2;
+    
+    const x = e.clientX - rect.left - offsetX;
+    const y = e.clientY - rect.top - offsetY;
+    
+    if (x < 0 || x > renderW || y < 0 || y > renderH) return;
+    
+    const xPct = x / renderW;
+    const yPct = y / renderH;
+    
+    api('/mouse', { 
+        method: 'POST', 
+        body: JSON.stringify({ action: 'absolute', x: xPct, y: yPct, click: true }) 
+    }).catch(()=>{});
+    
+    // Show visual indicator at tap location
+    const indicator = document.createElement('div');
+    indicator.className = 'absolute w-6 h-6 rounded-full border-2 border-primary/80 bg-primary/20 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 animate-ping';
+    indicator.style.left = `${e.clientX - rect.left}px`;
+    indicator.style.top = `${e.clientY - rect.top}px`;
+    screenOverlay.appendChild(indicator);
+    setTimeout(() => indicator.remove(), 500);
+    
+    if (navigator.vibrate) navigator.vibrate(15);
   });
 </script>
 </body>

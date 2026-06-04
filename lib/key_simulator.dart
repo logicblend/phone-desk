@@ -78,6 +78,31 @@ class KeySimulator {
     }
   }
 
+  /// Simulate absolute mouse movement and optional click
+  void simulateMouseAbsolute(double xPct, double yPct, {bool click = false}) {
+    if (!Platform.isWindows) return;
+    try {
+      final user32 = DynamicLibrary.open('user32.dll');
+      final MouseEventDart mouseEvent = user32.lookupFunction<MouseEventC, MouseEventDart>('mouse_event');
+      
+      // MOUSEEVENTF_ABSOLUTE is 0x8000
+      // Coordinates must be mapped to 0-65535
+      int absX = (xPct * 65535).round();
+      int absY = (yPct * 65535).round();
+      
+      int flags = MOUSEEVENTF_MOVE | 0x8000;
+      mouseEvent(flags, absX, absY, 0, 0);
+      
+      if (click) {
+        mouseEvent(MOUSEEVENTF_LEFTDOWN | 0x8000, absX, absY, 0, 0);
+        mouseEvent(MOUSEEVENTF_LEFTUP | 0x8000, absX, absY, 0, 0);
+      }
+    } catch (e) {
+      debugPrint('Mouse FFI absolute error: $e');
+    }
+  }
+
+
   /// Send a hotkey combination (e.g., "ctrl+shift+s", "alt+tab", "win+l")
   Future<bool> sendHotkey(String combo) async {
     final parts = combo.toLowerCase().split('+').map((s) => s.trim()).toList();

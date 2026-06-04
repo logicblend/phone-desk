@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -11,6 +12,7 @@ import 'theme.dart';
 import 'deck_manager.dart';
 import 'deck_panel.dart';
 import 'web_ui.dart';
+import 'screen_streamer.dart';
 
 class PhoneLinkApp extends StatefulWidget {
   const PhoneLinkApp({super.key});
@@ -40,6 +42,7 @@ class _PhoneLinkAppState extends State<PhoneLinkApp> {
 
   int _currentTab = 0; // 0: Dosyalar, 1: Galeri, 2: Deck
   final DeckManager _deckManager = DeckManager();
+  final ScreenStreamer _screenStreamer = ScreenStreamer();
 
   @override
   void initState() {
@@ -115,6 +118,7 @@ class _PhoneLinkAppState extends State<PhoneLinkApp> {
   void dispose() {
     _fileWatcher?.cancel();
     _server?.close(force: true);
+    _screenStreamer.stop();
     _pwdController.dispose();
     super.dispose();
   }
@@ -256,8 +260,9 @@ class _PhoneLinkAppState extends State<PhoneLinkApp> {
 
   bool _isAuthenticated(HttpRequest request) {
     if (_savedPassword.isEmpty) return true;
+    final authHeader = request.headers.value('authorization') ?? '';
     final pwd = request.uri.queryParameters['pwd'] ?? '';
-    return pwd == _savedPassword;
+    return authHeader == _savedPassword || pwd == _savedPassword;
   }
 
   Future<void> _listenToRequests() async {
@@ -443,6 +448,71 @@ class _PhoneLinkAppState extends State<PhoneLinkApp> {
           response.write('OK');
           await response.close();
         }
+        // Screen API endpoints
+        else if (request.method == 'GET' && path == '/screen/frame') {
+          final resStr = request.uri.queryParameters['res'];
+          if (resStr != null) {
+             final resMode = int.tryParse(resStr) ?? 1080;
+             _screenStreamer.setResolution(resMode);
+          }
+
+          final fpsStr = request.uri.queryParameters['fps'];
+          if (fpsStr != null) {
+            final fps = int.tryParse(fpsStr) ?? 15;
+            if (fps > 0) {
+              _screenStreamer.setFps(fps);
+              _screenStreamer.start();
+            } else {
+              _screenStreamer.stop();
+            }
+          } else {
+            _screenStreamer.start();
+          }
+          
+          int retries = 0;
+          while (_screenStreamer.latestFrame == null && retries < 40) {
+            await Future.delayed(const Duration(milliseconds: 50));
+            retries++;
+          }
+
+          final initialFrame = _screenStreamer.latestFrame;
+          if (initialFrame == null) {
+            response.statusCode = 404;
+            response.write('No frame yet');
+            await response.close();
+            continue;
+          }
+
+          response.headers.contentType = ContentType.parse('multipart/x-mixed-replace; boundary=--myboundary');
+          
+          void sendFrame(Uint8List frame) {
+            try {
+              response.write('--myboundary\r\n');
+              response.write('Content-Type: image/jpeg\r\n');
+              response.write('Content-Length: ${frame.length}\r\n\r\n');
+              response.add(frame);
+              response.write('\r\n');
+            } catch (e) {
+              // Socket might be closed
+            }
+          }
+          
+          sendFrame(initialFrame);
+          
+          final sub = _screenStreamer.frameStream.listen((frame) {
+            sendFrame(frame);
+          });
+
+          await request.response.done.catchError((_) {}).whenComplete(() {
+            sub.cancel();
+          });
+        }
+        else if (request.method == 'POST' && path == '/screen/stop') {
+          _screenStreamer.stop();
+          response.statusCode = 200;
+          response.write('OK');
+          await response.close();
+        }
         // Deck API endpoints
         else if (request.method == 'GET' && path == '/deck/profiles') {
           response.headers.contentType = ContentType.json;
@@ -487,15 +557,24 @@ class _PhoneLinkAppState extends State<PhoneLinkApp> {
           final content = await utf8.decoder.bind(request).join();
           try {
             final data = jsonDecode(content);
-            final action = data['action'] as String;
-            final dx = data['dx'] as int?;
-            final dy = data['dy'] as int?;
-            _deckManager.keySimulator.simulateMouse(action, dx: dx, dy: dy);
+            final action = data['action'];
+            if (action == 'absolute') {
+              final xPct = (data['x'] as num?)?.toDouble();
+              final yPct = (data['y'] as num?)?.toDouble();
+              final isClick = data['click'] == true;
+              if (xPct != null && yPct != null) {
+                _deckManager.keySimulator.simulateMouseAbsolute(xPct, yPct, click: isClick);
+              }
+            } else {
+              final dx = data['dx'] as int?;
+              final dy = data['dy'] as int?;
+              _deckManager.keySimulator.simulateMouse(action, dx: dx, dy: dy);
+            }
             response.statusCode = 200;
             response.write('OK');
-          } catch(e) {
+          } catch (e) {
             response.statusCode = 400;
-            response.write('Bad request: $e');
+            response.write('Error: $e');
           }
           await response.close();
         }
