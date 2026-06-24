@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/glass_container.dart';
 
 class DeckTab extends StatefulWidget {
   const DeckTab({super.key});
@@ -52,8 +53,9 @@ class _DeckTabState extends State<DeckTab> {
     return Column(
       children: [
         SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+          child: GlassContainer(
+            margin: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: DropdownButton<String>(
               value: _activeProfileId,
               isExpanded: true,
@@ -79,17 +81,15 @@ class _DeckTabState extends State<DeckTab> {
             itemBuilder: (context, index) {
               final btn = _buttons[index];
               final label = btn['label'] ?? '';
-              final colorHex = btn['color']?.replaceAll('#', '0xFF') ?? '0xFF3B82F6';
-              final color = Color(int.parse(colorHex));
+              final colorHex = btn['color']?.replaceAll('#', 'FF') ?? 'FF3B82F6';
+              final color = Color(int.parse(colorHex, radix: 16));
 
               return InkWell(
                 onTap: () => _onButtonTap(btn),
                 borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                child: GlassContainer(
+                  opacity: 0.2,
+                  borderColor: color.withAlpha(128),
                   child: Center(
                     child: Text(
                       label,

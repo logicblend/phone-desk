@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../widgets/glass_container.dart';
 
 class TouchpadTab extends StatelessWidget {
   const TouchpadTab({super.key});
 
-  void _onPanUpdate(DragUpdateDetails details) {
-    ApiService().sendMouse('relative', dx: details.delta.dx.toInt(), dy: details.delta.dy.toInt());
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    if (details.pointerCount == 1) {
+      ApiService().sendMouse('move', dx: details.focalPointDelta.dx.toInt(), dy: details.focalPointDelta.dy.toInt());
+    } else if (details.pointerCount == 2) {
+      ApiService().sendMouse('scroll', dy: details.focalPointDelta.dy.toInt());
+    }
   }
 
   void _onTap() {
@@ -19,13 +24,18 @@ class TouchpadTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onPanUpdate: _onPanUpdate,
+      onScaleUpdate: _onScaleUpdate,
       onTap: _onTap,
       onSecondaryTap: _onSecondaryTap,
       onDoubleTap: () => ApiService().sendMouse('left_click', click: true),
       child: Container(
         color: Colors.transparent,
-        child: const Center(
+        padding: const EdgeInsets.all(24.0),
+        child: Center(
+          child: GlassContainer(
+            width: double.infinity,
+            height: 400,
+            child: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -34,6 +44,8 @@ class TouchpadTab extends StatelessWidget {
               Text('Touchpad Alanı', style: TextStyle(color: Colors.white54, fontSize: 18)),
               Text('Fareyi hareket ettirmek için sürükleyin', style: TextStyle(color: Colors.white38)),
             ],
+              ),
+            ),
           ),
         ),
       ),
