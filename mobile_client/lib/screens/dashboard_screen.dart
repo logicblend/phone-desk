@@ -63,6 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       extendBody: true,
       body: AppBackground(
         child: LiquidGlassLayer(
+          fake: true,
           settings: const LiquidGlassSettings(
             thickness: 10,
             blur: 15,

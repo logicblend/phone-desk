@@ -119,10 +119,11 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.transparent,
       body: AppBackground(
         child: LiquidGlassLayer(
+          fake: true,
           settings: const LiquidGlassSettings(
-            thickness: 10,
-            blur: 15,
-            glassColor: Color(0x22FFFFFF),
+            thickness: 15,
+            blur: 20,
+            glassColor: Color(0x33FFFFFF),
           ),
           child: SafeArea(
             child: Center(
