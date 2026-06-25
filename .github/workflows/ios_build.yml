@@ -35,11 +35,9 @@ jobs:
         run: |
           mkdir -p build/ios/iphoneos/Payload
           mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
-          cd build/ios/iphoneos
-          zip -r -q PhoneDeskClient.ipa Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: PhoneDeskClient-iOS-IPA
-          path: mobile_client/build/ios/iphoneos/PhoneDeskClient.ipa
+          path: mobile_client/build/ios/iphoneos/Payload
