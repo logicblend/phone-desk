@@ -33,11 +33,11 @@ jobs:
       - name: Create IPA payload
         working-directory: mobile_client
         run: |
-          mkdir -p build/ios/iphoneos/Payload
-          mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          mkdir -p build/ios/iphoneos/IPA_Root/Payload
+          mv build/ios/iphoneos/Runner.app build/ios/iphoneos/IPA_Root/Payload/
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: PhoneDeskClient-iOS-IPA
-          path: mobile_client/build/ios/iphoneos/Payload
+          path: mobile_client/build/ios/iphoneos/IPA_Root
